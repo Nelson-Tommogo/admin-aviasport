@@ -1,0 +1,22 @@
+{
+  "name": "admindash-main",
+  "version": "1.0.0",
+  "description": "ECOMVISION - an all-in-one admin dashboard for businesses. With ECOMVISION, managing and analyzing your business data has never been easier. Keep track of your sales figures, customer engagement metrics, and more - all on one sleek and intuitive platform. I designed ECOMVISION with the user in mind, incorporating modern design elements and easy-to-use features. Plus, with cutting-edge technologies like the React.js, Express, Node JS, and MongoDB, you can count on speed and reliability.",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@reduxjs/toolkit": "^2.6.1",
+    "bootstrap": "^5.3.3",
+    "dotenv": "^16.4.7",
+    "multer": "^1.4.5-lts.2",
+    "papaparse": "^5.5.2",
+    "react-bootstrap": "^2.10.9",
+    "react-redux": "^9.2.0",
+    "recharts": "^2.15.1"
+  }
+}
