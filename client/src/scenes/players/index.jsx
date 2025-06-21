@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { 
   Box, Typography, Table, TableBody, TableCell, TableContainer, 
   TableHead, TableRow, Paper, TextField, InputAdornment,
@@ -9,43 +9,21 @@ import { Search as SearchIcon, Person as PersonIcon } from "@mui/icons-material"
 
 const Players = () => {
   // Sample player data
-  const [players, setPlayers] = useState([
-    { id: 1, username: "WinnerX", avatar: "", totalBets: 42, totalWins: 12, totalPayout: 125000, lastActive: "2023-06-17 13:45", status: "active" },
-    { id: 2, username: "LuckyGuy", avatar: "", totalBets: 35, totalWins: 8, totalPayout: 87600, lastActive: "2023-06-17 12:30", status: "active" },
-    { id: 3, username: "AviatorPro", avatar: "", totalBets: 58, totalWins: 15, totalPayout: 68200, lastActive: "2023-06-16 18:15", status: "active" },
-    { id: 4, username: "BetMaster", avatar: "", totalBets: 27, totalWins: 6, totalPayout: 54300, lastActive: "2023-06-15 09:20", status: "inactive" },
-    { id: 5, username: "CashKing", avatar: "", totalBets: 31, totalWins: 9, totalPayout: 49800, lastActive: "2023-06-14 16:45", status: "active" },
-  ]);
+  const [players] = useState([]);
 
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [selectedPlayer, setSelectedPlayer] = useState(null);
   const [openDialog, setOpenDialog] = useState(false);
-  const [stats, setStats] = useState({
+  const [stats] = useState({
     totalPlayers: 0,
     activePlayers: 0,
     totalWagered: 0,
     totalPayouts: 0
   });
 
-  // Calculate statistics
-  useEffect(() => {
-    const filteredPlayers = getFilteredPlayers();
-    
-    const totalPlayers = filteredPlayers.length;
-    const activePlayers = filteredPlayers.filter(p => p.status === "active").length;
-    const totalWagered = filteredPlayers.reduce((sum, player) => sum + player.totalBets * 1000, 0); // Assuming average bet of 1000
-    const totalPayouts = filteredPlayers.reduce((sum, player) => sum + player.totalPayout, 0);
-    
-    setStats({
-      totalPlayers,
-      activePlayers,
-      totalWagered,
-      totalPayouts
-    });
-  }, [players, searchTerm, statusFilter]);
-
-  const getFilteredPlayers = () => {
+  // Define getFilteredPlayers with useCallback
+  const getFilteredPlayers = useCallback(() => {
     return players.filter(player => {
       // Search filter
       const matchesSearch = player.username.toLowerCase().includes(searchTerm.toLowerCase());
@@ -55,7 +33,11 @@ const Players = () => {
       
       return matchesSearch && matchesStatus;
     });
-  };
+  }, [players, searchTerm, statusFilter]);
+
+  useEffect(() => {
+    getFilteredPlayers();
+  }, [getFilteredPlayers]);
 
   const handleSearchChange = (event) => {
     setSearchTerm(event.target.value);

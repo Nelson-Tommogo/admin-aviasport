@@ -1,30 +1,26 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import {
   Box, Typography, Table, TableBody, TableCell, TableContainer,
   TableHead, TableRow, Paper, TextField, InputAdornment,
-  MenuItem, Grid, Card, CardContent, Chip, Button,
+  MenuItem, Grid, Card, CardContent, Button,
   Dialog, DialogTitle, DialogContent, DialogActions, Select,
   FormControl, InputLabel, IconButton, Switch, FormControlLabel
 } from "@mui/material";
 import {
   Search as SearchIcon,
-  FilterList as FilterIcon,
   ArrowUpward as ArrowUpwardIcon,
   ArrowDownward as ArrowDownwardIcon,
   Payment as PaymentIcon,
   CheckCircle as CheckCircleIcon,
   Pending as PendingIcon
 } from "@mui/icons-material";
+import { apiFetch } from '../../service/api';
 
 const Payout = () => {
-  // Sample payout data
-  const [payouts, setPayouts] = useState([
-    { id: 1, player: "WinnerX", amount: 12500, method: "M-Pesa", status: "completed", date: "2023-06-17 14:35", transactionId: "MP123456789", processedBy: "Admin1" },
-    { id: 2, player: "LuckyGuy", amount: 5400, method: "Bank Transfer", status: "pending", date: "2023-06-17 15:50", transactionId: "BT987654321", processedBy: "Admin2" },
-    { id: 3, player: "BetMaster", amount: 9400, method: "M-Pesa", status: "completed", date: "2023-06-16 11:35", transactionId: "MP456789123", processedBy: "Admin1" },
-    { id: 4, player: "CashKing", amount: 5400, method: "Airtel Money", status: "failed", date: "2023-06-15 13:50", transactionId: "AM321654987", processedBy: "Admin3" },
-    { id: 5, player: "HighRoller", amount: 28700, method: "Bank Transfer", status: "pending", date: "2023-06-15 09:20", transactionId: "BT147258369", processedBy: "Admin2" },
-  ]);
+  // Fetch payout data from backend
+  const [payouts, setPayouts] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
 
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
@@ -41,53 +37,44 @@ const Payout = () => {
     pendingPayouts: 0
   });
 
-  // Calculate statistics
   useEffect(() => {
-    const filteredPayouts = getFilteredPayouts();
-    
-    const totalPayouts = filteredPayouts.length;
-    const totalAmount = filteredPayouts.reduce((sum, payout) => sum + payout.amount, 0);
-    const completedPayouts = filteredPayouts.filter(p => p.status === "completed").length;
-    const pendingPayouts = filteredPayouts.filter(p => p.status === "pending").length;
-    
-    setStats({
-      totalPayouts,
-      totalAmount,
-      completedPayouts,
-      pendingPayouts
-    });
-  }, [payouts, searchTerm, statusFilter, methodFilter, dateFilter, showOnlyPending]);
+    setLoading(true);
+    apiFetch('/payouts')
+      .then(data => {
+        setPayouts(data);
+        setLoading(false);
+      })
+      .catch(err => {
+        setError(err.message);
+        setLoading(false);
+      });
+  }, []);
 
-  const getFilteredPayouts = () => {
+  // Wrap getFilteredPayouts in useCallback
+  const getFilteredPayouts = useCallback(() => {
     let filtered = payouts.filter(payout => {
       // Search filter
-      const matchesSearch = payout.player.toLowerCase().includes(searchTerm.toLowerCase());
-      
+      const matchesSearch = (payout.player?.username || payout.player || "").toLowerCase().includes(searchTerm.toLowerCase());
       // Status filter
       const matchesStatus = statusFilter === "all" || payout.status === statusFilter;
-      
       // Method filter
       const matchesMethod = methodFilter === "all" || payout.method === methodFilter;
-      
       // Date filter
       let matchesDate = true;
       if (dateFilter === "today") {
         const today = new Date().toISOString().split('T')[0];
-        matchesDate = payout.date.startsWith(today);
+        matchesDate = payout.createdAt?.startsWith(today);
       } else if (dateFilter === "yesterday") {
         const yesterday = new Date(Date.now() - 86400000).toISOString().split('T')[0];
-        matchesDate = payout.date.startsWith(yesterday);
+        matchesDate = payout.createdAt?.startsWith(yesterday);
       } else if (dateFilter === "thisWeek") {
         const oneWeekAgo = new Date(Date.now() - 7 * 86400000).toISOString();
-        matchesDate = payout.date >= oneWeekAgo;
+        matchesDate = payout.createdAt >= oneWeekAgo;
       }
-      
       // Pending toggle filter
       const matchesPendingToggle = !showOnlyPending || payout.status === "pending";
-      
       return matchesSearch && matchesStatus && matchesMethod && matchesDate && matchesPendingToggle;
     });
-
     // Sorting
     return filtered.sort((a, b) => {
       if (a[sortConfig.key] < b[sortConfig.key]) {
@@ -98,7 +85,26 @@ const Payout = () => {
       }
       return 0;
     });
-  };
+  }, [payouts, searchTerm, statusFilter, methodFilter, dateFilter, showOnlyPending, sortConfig]);
+
+  useEffect(() => {
+    getFilteredPayouts();
+  }, [getFilteredPayouts]);
+
+  // Calculate statistics
+  useEffect(() => {
+    const filteredPayouts = getFilteredPayouts();
+    const totalPayouts = filteredPayouts.length;
+    const totalAmount = filteredPayouts.reduce((sum, payout) => sum + (payout.amount || 0), 0);
+    const completedPayouts = filteredPayouts.filter(p => p.status === "completed").length;
+    const pendingPayouts = filteredPayouts.filter(p => p.status === "pending").length;
+    setStats({
+      totalPayouts,
+      totalAmount,
+      completedPayouts,
+      pendingPayouts
+    });
+  }, [payouts, searchTerm, statusFilter, methodFilter, dateFilter, showOnlyPending, getFilteredPayouts]);
 
   const handleSearchChange = (event) => {
     setSearchTerm(event.target.value);

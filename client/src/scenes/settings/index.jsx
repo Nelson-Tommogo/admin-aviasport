@@ -1,9 +1,9 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { 
   Box, Typography, Card, CardContent, Grid, Switch, 
   FormControlLabel, TextField, Button, Divider, 
   Select, MenuItem, InputLabel, FormControl,
-  Tabs, Tab, Alert, Snackbar
+  Tabs, Tab, Alert, Snackbar, CircularProgress
 } from "@mui/material";
 import {
   AccountCircle as AccountIcon,
@@ -14,6 +14,7 @@ import {
 } from "@mui/icons-material";
 import { useSelector, useDispatch } from "react-redux";
 import { setMode } from "state/index";
+import { apiFetch, getToken } from '../../service/api';
 
 const Settings = () => {
   const dispatch = useDispatch();
@@ -24,12 +25,11 @@ const Settings = () => {
     message: "",
     severity: "success"
   });
-
-  // User profile state
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
   const [userProfile, setUserProfile] = useState({
-    name: "Admin User",
-    email: "admin@betikaaviator.com",
-    phone: "+254 712 345 678",
+    name: "",
+    email: "",
     role: "Administrator"
   });
 
@@ -43,12 +43,44 @@ const Settings = () => {
   });
 
   // System settings
-  const [systemSettings, setSystemSettings] = useState({
-    dataRetentionDays: 90,
-    autoBackup: true,
-    apiKey: "sk_live_51KjT7GHJk89Jk89Jk89Jk89Jk89Jk89Jk89Jk89",
-    environment: "production"
-  });
+  const [systemSettings, setSystemSettings] = useState([]);
+
+  useEffect(() => {
+    setLoading(true);
+    // Try to fetch user info from backend, fallback to localStorage
+    apiFetch('/auth/me')
+      .then(data => {
+        setUserProfile({
+          name: data.username || data.name || "",
+          email: data.email || "",
+          role: "Administrator"
+        });
+        setLoading(false);
+      })
+      .catch(() => {
+        // fallback to localStorage if /auth/me is not available
+        try {
+          const admin = JSON.parse(localStorage.getItem('admin'));
+          setUserProfile({
+            name: admin?.username || "",
+            email: admin?.email || "",
+            role: "Administrator"
+          });
+        } catch {
+          setUserProfile({ name: "", email: "", role: "Administrator" });
+        }
+        setLoading(false);
+      });
+
+    // Fetch real settings from backend
+    apiFetch('/settings')
+      .then(settings => {
+        setSystemSettings(settings);
+      })
+      .catch(err => {
+        setError('Failed to fetch settings: ' + err.message);
+      });
+  }, []);
 
   const handleTabChange = (event, newValue) => {
     setCurrentTab(newValue);
@@ -364,87 +396,35 @@ const Settings = () => {
         <Card>
           <CardContent>
             <Typography variant="h6" gutterBottom>
-              System Configuration
+              System Settings (from database)
             </Typography>
-            
-            <Grid container spacing={3}>
-              <Grid item xs={12} md={6}>
-                <TextField
-                  fullWidth
-                  label="Data Retention (days)"
-                  name="dataRetentionDays"
-                  type="number"
-                  value={systemSettings.dataRetentionDays}
-                  onChange={handleSystemSettingChange}
-                  margin="normal"
-                />
-              </Grid>
-              <Grid item xs={12} md={6}>
-                <FormControlLabel
-                  control={
-                    <Switch
-                      checked={systemSettings.autoBackup}
-                      onChange={handleSystemSettingChange}
-                      name="autoBackup"
-                    />
-                  }
-                  label="Automatic Backups"
-                />
-              </Grid>
-              <Grid item xs={12} md={6}>
-                <TextField
-                  fullWidth
-                  label="API Key"
-                  name="apiKey"
-                  value={systemSettings.apiKey}
-                  onChange={handleSystemSettingChange}
-                  margin="normal"
-                  type="password"
-                />
-              </Grid>
-              <Grid item xs={12} md={6}>
-                <FormControl fullWidth margin="normal">
-                  <InputLabel>Environment</InputLabel>
-                  <Select
-                    name="environment"
-                    value={systemSettings.environment}
-                    onChange={handleSystemSettingChange}
-                    label="Environment"
-                  >
-                    <MenuItem value="development">Development</MenuItem>
-                    <MenuItem value="staging">Staging</MenuItem>
-                    <MenuItem value="production">Production</MenuItem>
-                  </Select>
-                </FormControl>
-              </Grid>
-            </Grid>
-            
-            <Divider sx={{ my: 3 }} />
-            
-            <Typography variant="h6" gutterBottom>
-              Danger Zone
-            </Typography>
-            <Alert severity="warning" sx={{ mb: 2 }}>
-              These actions are irreversible. Please proceed with caution.
-            </Alert>
-            <Box sx={{ display: 'flex', gap: 2 }}>
-              <Button variant="outlined" color="error">
-                Clear All Data
-              </Button>
-              <Button variant="outlined" color="error">
-                Reset to Default Settings
-              </Button>
-            </Box>
-            
-            <Box sx={{ mt: 3, display: 'flex', justifyContent: 'flex-end' }}>
-              <Button 
-                variant="contained" 
-                startIcon={<SaveIcon />}
-                onClick={() => handleSaveSettings("System")}
-              >
-                Save Changes
-              </Button>
-            </Box>
+            {loading ? (
+              <CircularProgress />
+            ) : error ? (
+              <Alert severity="error">{error}</Alert>
+            ) : (
+              <Box>
+                {systemSettings.length === 0 ? (
+                  <Typography>No settings found in database.</Typography>
+                ) : (
+                  <Grid container spacing={2}>
+                    {systemSettings.map(setting => (
+                      <Grid item xs={12} md={6} key={setting._id}>
+                        <Card variant="outlined" sx={{ mb: 2 }}>
+                          <CardContent>
+                            <Typography variant="subtitle1"><b>{setting.key}</b></Typography>
+                            <Typography variant="body2">{String(setting.value)}</Typography>
+                            {setting.description && (
+                              <Typography variant="caption" color="text.secondary">{setting.description}</Typography>
+                            )}
+                          </CardContent>
+                        </Card>
+                      </Grid>
+                    ))}
+                  </Grid>
+                )}
+              </Box>
+            )}
           </CardContent>
         </Card>
       )}

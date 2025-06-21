@@ -21,8 +21,9 @@ import {
   CircularProgress,
 } from "@mui/material";
 import { useNavigate } from "react-router-dom";
+import { apiFetch } from '../service/api';
 
-const Navbar = ({ userEmail, isSidebarOpen, setIsSidebarOpen }) => {
+const Navbar = ({ isSidebarOpen, setIsSidebarOpen }) => {
   const navigate = useNavigate();
   const [anchorEl, setAnchorEl] = useState(null);
   const [openLogoutDialog, setOpenLogoutDialog] = useState(false);
@@ -36,54 +37,29 @@ const Navbar = ({ userEmail, isSidebarOpen, setIsSidebarOpen }) => {
   const handleClick = (event) => setAnchorEl(event.currentTarget);
   const handleClose = () => setAnchorEl(null);
 
-  // Fetch user details from backend using email from localStorage
+  // Fetch user details from backend using token
   useEffect(() => {
     const fetchUserDetails = async () => {
       try {
         setLoadingUser(true);
-        const token = localStorage.getItem('token');
-        
-        if (!token) {
-          throw new Error('No authentication token found');
-        }
-
-        const response = await fetch('https://mataa-backend.onrender.com/api/users', {
-          headers: {
-            'Authorization': `Bearer ${token}`
-          }
-        });
-
-        if (!response.ok) {
-          throw new Error(`Failed to fetch users: ${response.status}`);
-        }
-
-        const data = await response.json();
-        
-        // Find the current user by email
-        const storedUser = JSON.parse(localStorage.getItem('user'));
-        if (!storedUser || !storedUser.email) {
-          throw new Error('No user email found in local storage');
-        }
-
-        const currentUser = data.users.find(user => user.email === storedUser.email);
-        
-        if (!currentUser) {
-          throw new Error('User not found in database');
-        }
-
-        setUserDetails(currentUser);
-        // Update localStorage with complete user details
-        localStorage.setItem('user', JSON.stringify(currentUser));
+        const data = await apiFetch('/auth/me');
+        setUserDetails(data);
+        localStorage.setItem('admin', JSON.stringify(data));
       } catch (error) {
-        console.error('Error fetching user details:', error);
+        // fallback to localStorage if /auth/me is not available
+        try {
+          const admin = JSON.parse(localStorage.getItem('admin'));
+          setUserDetails(admin);
+        } catch {
+          setUserDetails(null);
+        }
         setUserError(error.message);
       } finally {
         setLoadingUser(false);
       }
     };
-
     fetchUserDetails();
-  }, [userEmail]); // Re-run when userEmail changes
+  }, []);
 
   const handleLogoutClick = () => {
     setOpenLogoutDialog(true);
@@ -93,30 +69,14 @@ const Navbar = ({ userEmail, isSidebarOpen, setIsSidebarOpen }) => {
   const handleConfirmLogout = async () => {
     setIsLoggingOut(true);
     setLogoutError(null);
-
     try {
-      const response = await fetch("https://mataa-backend.onrender.com/logout", {
-        method: "POST",
-        credentials: "include",
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization": `Bearer ${localStorage.getItem('token')}`
-        },
-      });
-
-      if (!response.ok) {
-        throw new Error(`Logout failed with status: ${response.status}`);
-      }
-
-      localStorage.removeItem("user");
+      localStorage.removeItem("admin");
       localStorage.removeItem("token");
       sessionStorage.clear();
-
       navigate("/login");
     } catch (error) {
-      console.error("Logout error:", error);
       setLogoutError(error.message || "Failed to logout. Please try again.");
-      localStorage.removeItem("user");
+      localStorage.removeItem("admin");
       localStorage.removeItem("token");
       navigate("/login");
     } finally {
@@ -200,11 +160,10 @@ const Navbar = ({ userEmail, isSidebarOpen, setIsSidebarOpen }) => {
               anchorEl={anchorEl}
               open={isOpen}
               onClose={handleClose}
-              anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
+              anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+              transformOrigin={{ vertical: 'top', horizontal: 'right' }}
             >
-              <MenuItem onClick={handleLogoutClick} disabled={isLoggingOut}>
-                Log Out
-              </MenuItem>
+              <MenuItem onClick={handleLogoutClick}>Logout</MenuItem>
             </Menu>
           </FlexBetween>
         </FlexBetween>

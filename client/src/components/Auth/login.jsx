@@ -13,9 +13,10 @@ import {
   DialogTitle,
   DialogActions
 } from '@mui/material';
+import { apiFetch, setToken } from '../../service/api';
 
 const Login = () => {
-  const [email, setEmail] = useState('');
+  const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -28,43 +29,16 @@ const Login = () => {
     setError('');
 
     try {
-      const response = await fetch('https://mataa-backend.onrender.com/login', {
+      const { token } = await apiFetch('/auth/login', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        credentials: 'include',
-        body: JSON.stringify({ email, password })
+        body: JSON.stringify({ username, password })
       });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        let message = data?.message || 'Login failed. Please try again.';
-
-        if (message.includes('Invalid credentials')) {
-          message = 'Incorrect email or password.';
-        } else if (message.includes('User not found')) {
-          message = 'No account found with that email.';
-        } else if (message.includes('Missing')) {
-          message = 'Please fill in all fields.';
-        }
-
-        throw new Error(message);
-      }
-
-      localStorage.setItem('token', data.token);
-      localStorage.setItem('user', JSON.stringify(data.user));
-
-      // Show success dialog
+      setToken(token);
+      // Optionally store admin info in localStorage or context
+      // localStorage.setItem('admin', JSON.stringify(admin));
       setOpenSuccessDialog(true);
-
     } catch (err) {
-      const errorMessage = err.message.includes('Failed to fetch')
-        ? 'Network error. Please check your internet connection.'
-        : err.message;
-
-      setError(errorMessage);
+      setError(err.message);
       console.error('Login error:', err);
     } finally {
       setIsLoading(false);
@@ -119,14 +93,13 @@ const Login = () => {
           }}
         >
           <TextField
-            label="Email"
-            type="email"
+            label="Username"
             variant="outlined"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
+            value={username}
+            onChange={(e) => setUsername(e.target.value)}
             required
             fullWidth
-            autoComplete="email"
+            autoComplete="username"
           />
 
           <TextField

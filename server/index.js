@@ -5,6 +5,15 @@ import cors from "cors";
 import multer, { memoryStorage } from "multer";
 import { v2 as cloudinary } from "cloudinary";
 import Product from "./models/Product.js"; // Import Product Model
+import betRoutes from './routes/betRoutes.js';
+import playerRoutes from './routes/playerRoutes.js';
+import flightRoutes from './routes/flightRoutes.js';
+import flightPlanRoutes from './routes/flightPlanRoutes.js';
+import payoutRoutes from './routes/payoutRoutes.js';
+import settingsRoutes from './routes/settingsRoutes.js';
+import authRoutes from './routes/authRoutes.js';
+import dashboardRoutes from './routes/dashboardRoutes.js';
+import auth from './middleware/auth.js';
 
 const app = express();
 app.use(json());
@@ -187,7 +196,22 @@ app.get("/", (req, res) => {
   res.send(" Welcome to the API! Use /products to fetch data.");
 });
 
+app.use('/api/auth', authRoutes);
+app.use('/api/dashboard', dashboardRoutes);
+
+// Protect all /api/* routes except /api/auth and /api/auth/login
+app.use('/api/bets', auth, betRoutes);
+app.use('/api/players', auth, playerRoutes);
+app.use('/api/flights', auth, flightRoutes);
+app.use('/api/flight-plans', auth, flightPlanRoutes);
+app.use('/api/payouts', auth, payoutRoutes);
+app.use('/api/settings', auth, settingsRoutes);
+
 // ✅ Start the Server
 const serverPort = process.env.PORT || 5000;
 app.listen(serverPort, () => console.log(`Mataa Gari Ventures Server running on port ${serverPort}`));
+
+if (!process.env.JWT_SECRET) {
+  throw new Error('JWT_SECRET must be set in your .env file');
+}
 

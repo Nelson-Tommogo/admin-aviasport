@@ -1,26 +1,40 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { 
   Box, Typography, Button, Dialog, DialogTitle, DialogContent, 
   DialogActions, TextField, Table, TableBody, TableCell, TableContainer, 
-  TableHead, TableRow, Paper, IconButton, Backdrop, CircularProgress
+  TableHead, TableRow, Paper, IconButton, Backdrop, CircularProgress, Checkbox, FormControlLabel
 } from "@mui/material";
 import { Add as AddIcon, Edit as EditIcon, Delete as DeleteIcon } from "@mui/icons-material";
+import { apiFetch } from '../../service/api';
 
 const FlightPlans = () => {
-  const [flights, setFlights] = useState([
-    { id: 1, flightNumber: "AV-1234", multiplier: 2.5, timestamp: "2023-06-15 14:30", status: "Completed" },
-    { id: 2, flightNumber: "AV-5678", multiplier: 1.8, timestamp: "2023-06-15 15:45", status: "Completed" },
-    { id: 3, flightNumber: "AV-9012", multiplier: 3.2, timestamp: "2023-06-16 09:15", status: "Scheduled" },
-  ]);
-  const [open, setOpen] = useState(false);
+  const [flights, setFlights] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+  const [open, setOpen] = useState(false);
   const [editIndex, setEditIndex] = useState(null);
   const [formData, setFormData] = useState({
-    flightNumber: "",
-    multiplier: "",
-    timestamp: "",
-    status: "Scheduled"
+    name: "",
+    description: "",
+    isActive: true
   });
+
+  const fetchFlightPlans = () => {
+    setLoading(true);
+    apiFetch('/flight-plans')
+      .then(data => {
+        setFlights(data);
+        setLoading(false);
+      })
+      .catch(err => {
+        setError(err.message);
+        setLoading(false);
+      });
+  };
+
+  useEffect(() => {
+    fetchFlightPlans();
+  }, []);
 
   const handleOpen = (index = null) => {
     if (index !== null) {
@@ -29,10 +43,9 @@ const FlightPlans = () => {
     } else {
       setEditIndex(null);
       setFormData({
-        flightNumber: "",
-        multiplier: "",
-        timestamp: "",
-        status: "Scheduled"
+        name: "",
+        description: "",
+        isActive: true
       });
     }
     setOpen(true);
@@ -41,37 +54,47 @@ const FlightPlans = () => {
   const handleClose = () => setOpen(false);
 
   const handleChange = (e) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value });
+    const { name, value, type, checked } = e.target;
+    setFormData({ ...formData, [name]: type === 'checkbox' ? checked : value });
   };
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     setLoading(true);
-    // Simulate API call
-    setTimeout(() => {
+    try {
       if (editIndex !== null) {
-        const updatedFlights = [...flights];
-        updatedFlights[editIndex] = formData;
-        setFlights(updatedFlights);
+        // Update existing flight plan
+        const id = flights[editIndex]._id;
+        await apiFetch(`/flight-plans/${id}`, {
+          method: 'PUT',
+          body: JSON.stringify(formData)
+        });
       } else {
-        const newFlight = {
-          ...formData,
-          id: flights.length + 1
-        };
-        setFlights([...flights, newFlight]);
+        // Create new flight plan
+        await apiFetch('/flight-plans', {
+          method: 'POST',
+          body: JSON.stringify(formData)
+        });
       }
-      setLoading(false);
+      fetchFlightPlans();
       setOpen(false);
-    }, 1000);
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const handleDelete = (id) => {
-    if (window.confirm("Are you sure you want to delete this flight?")) {
+  const handleDelete = async (id) => {
+    if (window.confirm("Are you sure you want to delete this flight plan?")) {
       setLoading(true);
-      // Simulate API call
-      setTimeout(() => {
-        setFlights(flights.filter(flight => flight.id !== id));
+      try {
+        await apiFetch(`/flight-plans/${id}`, { method: 'DELETE' });
+        fetchFlightPlans();
+      } catch (err) {
+        setError(err.message);
+      } finally {
         setLoading(false);
-      }, 1000);
+      }
     }
   };
 
@@ -83,7 +106,6 @@ const FlightPlans = () => {
       <Typography variant="h5" color="#555" sx={{ mb: "20px" }}>
         Manage Betika Aviator flight plans
       </Typography>
-      
       <Button 
         variant="contained" 
         startIcon={<AddIcon />} 
@@ -92,30 +114,27 @@ const FlightPlans = () => {
       >
         Add New Flight
       </Button>
-      
       <TableContainer component={Paper} sx={{ mt: 2 }}>
         <Table>
           <TableHead sx={{ backgroundColor: "#f0f0f0" }}>
             <TableRow>
-              <TableCell>Flight Number</TableCell>
-              <TableCell>Multiplier</TableCell>
-              <TableCell>Timestamp</TableCell>
-              <TableCell>Status</TableCell>
+              <TableCell>Name</TableCell>
+              <TableCell>Description</TableCell>
+              <TableCell>Active</TableCell>
               <TableCell>Actions</TableCell>
             </TableRow>
           </TableHead>
           <TableBody>
             {flights.map((flight, index) => (
-              <TableRow key={flight.id}>
-                <TableCell>{flight.flightNumber}</TableCell>
-                <TableCell>{flight.multiplier}x</TableCell>
-                <TableCell>{flight.timestamp}</TableCell>
-                <TableCell>{flight.status}</TableCell>
+              <TableRow key={flight._id || flight.id}>
+                <TableCell>{flight.name}</TableCell>
+                <TableCell>{flight.description}</TableCell>
+                <TableCell>{flight.isActive ? 'Yes' : 'No'}</TableCell>
                 <TableCell>
                   <IconButton onClick={() => handleOpen(index)} size="small">
                     <EditIcon />
                   </IconButton>
-                  <IconButton onClick={() => handleDelete(flight.id)} size="small" color="error">
+                  <IconButton onClick={() => handleDelete(flight._id || flight.id)} size="small" color="error">
                     <DeleteIcon />
                   </IconButton>
                 </TableCell>
@@ -124,54 +143,29 @@ const FlightPlans = () => {
           </TableBody>
         </Table>
       </TableContainer>
-
       <Dialog open={open} onClose={handleClose}>
-        <DialogTitle>{editIndex !== null ? "Edit Flight" : "Add New Flight"}</DialogTitle>
+        <DialogTitle>{editIndex !== null ? "Edit Flight Plan" : "Add New Flight Plan"}</DialogTitle>
         <DialogContent>
           <TextField 
-            label="Flight Number" 
-            name="flightNumber" 
-            value={formData.flightNumber} 
+            label="Name" 
+            name="name" 
+            value={formData.name} 
             onChange={handleChange} 
             fullWidth 
             margin="dense" 
           />
           <TextField 
-            label="Multiplier" 
-            name="multiplier" 
-            type="number"
-            value={formData.multiplier} 
+            label="Description" 
+            name="description" 
+            value={formData.description} 
             onChange={handleChange} 
             fullWidth 
             margin="dense" 
           />
-          <TextField 
-            label="Timestamp" 
-            name="timestamp" 
-            type="datetime-local"
-            InputLabelProps={{ shrink: true }}
-            value={formData.timestamp} 
-            onChange={handleChange} 
-            fullWidth 
-            margin="dense" 
+          <FormControlLabel
+            control={<Checkbox checked={formData.isActive} onChange={handleChange} name="isActive" />}
+            label="Active"
           />
-          <TextField
-            select
-            label="Status"
-            name="status"
-            value={formData.status}
-            onChange={handleChange}
-            fullWidth
-            margin="dense"
-            SelectProps={{
-              native: true,
-            }}
-          >
-            <option value="Scheduled">Scheduled</option>
-            <option value="In Progress">In Progress</option>
-            <option value="Completed">Completed</option>
-            <option value="Cancelled">Cancelled</option>
-          </TextField>
         </DialogContent>
         <DialogActions>
           <Button onClick={handleClose}>Cancel</Button>
@@ -180,7 +174,6 @@ const FlightPlans = () => {
           </Button>
         </DialogActions>
       </Dialog>
-
       <Backdrop
         sx={{ color: '#fff', zIndex: (theme) => theme.zIndex.drawer + 1 }}
         open={loading}

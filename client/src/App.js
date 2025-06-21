@@ -1,51 +1,39 @@
 import React from 'react';
-import { useSelector } from 'react-redux';
-import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
-import Layout from 'scenes/layout';
-import Dashboard from 'scenes/dashboard';
-import Admin from 'scenes/admin';
-import FlightHistory from 'scenes/flighthistory';
-import FlightPlans from 'scenes/flightplans';
-import Settings from 'scenes/settings';
-import Players from 'scenes/players';
-import BetHistory from 'scenes/BetHistory';
-import Payout from 'scenes/Payout';
-import Login from 'components/Auth/login';
-import Signup from 'components/Auth/signup';
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import Login from './components/Auth/login';
+import Signup from './components/Auth/signup';
+import Dashboard from './scenes/dashboard';
+import BetHistory from './scenes/BetHistory';
+import Players from './scenes/players';
+import Payout from './scenes/Payout';
+import FlightHistory from './scenes/flighthistory';
+import FlightPlans from './scenes/flightplans';
+import Layout from './scenes/layout';
+import Settings from './scenes/settings';
+import { getToken } from './service/api';
+
+const PrivateRoute = ({ children }) => {
+  return getToken() ? children : <Navigate to="/login" />;
+};
 
 function App() {
-  const isAuthenticated = useSelector((state) => state.auth.isAuthenticated);
-
   return (
-    <BrowserRouter>
+    <Router>
       <Routes>
-        {/* Public Routes */}
         <Route path="/login" element={<Login />} />
         <Route path="/signup" element={<Signup />} />
-
-        {/* Protected Routes */}
-        <Route
-          path="/"
-          element={isAuthenticated ? <Layout /> : <Navigate to="/login" />}
-        >
-          <Route index element={<Navigate to="/dashboard" replace />} />
-          <Route path="dashboard" element={<Dashboard />} />
-          <Route path="admin" element={<Admin />} />
-          <Route path="flighthistory" element={<FlightHistory />} />
-          <Route path="flightplans" element={<FlightPlans />} />
-          <Route path="settings" element={<Settings />} />
-          <Route path="players" element={<Players />} />
-          <Route path="bets-history" element={<BetHistory />} />
-          <Route path="payouts" element={<Payout />} />
+        <Route element={<PrivateRoute><Layout /></PrivateRoute>}>
+          <Route path="/dashboard" element={<Dashboard />} />
+          <Route path="/bets-history" element={<BetHistory />} />
+          <Route path="/players" element={<Players />} />
+          <Route path="/payouts" element={<Payout />} />
+          <Route path="/flighthistory" element={<FlightHistory />} />
+          <Route path="/flightplans" element={<FlightPlans />} />
+          <Route path="/settings" element={<Settings />} />
         </Route>
-
-        {/* Catch-all Route */}
-        <Route
-          path="*"
-          element={<Navigate to={isAuthenticated ? "/dashboard" : "/login"} />}
-        />
+        <Route path="/" element={<Navigate to="/login" />} />
       </Routes>
-    </BrowserRouter>
+    </Router>
   );
 }
 

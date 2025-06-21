@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { 
   Box, Typography, Table, TableBody, TableCell, TableContainer, 
   TableHead, TableRow, Paper, TextField, InputAdornment,
@@ -15,13 +15,7 @@ import {
 
 const BetHistory = () => {
   // Sample bet data
-  const [bets, setBets] = useState([
-    { id: 1, player: "WinnerX", flightNumber: "AV-1234", amount: 5000, multiplier: 2.5, payout: 12500, date: "2023-06-17 14:30", status: "won" },
-    { id: 2, player: "LuckyGuy", flightNumber: "AV-5678", amount: 3000, multiplier: 1.8, payout: 5400, date: "2023-06-17 15:45", status: "won" },
-    { id: 3, player: "AviatorPro", flightNumber: "AV-9012", amount: 7500, multiplier: 0, payout: 0, date: "2023-06-16 09:15", status: "lost" },
-    { id: 4, player: "BetMaster", flightNumber: "AV-3456", amount: 2000, multiplier: 4.7, payout: 9400, date: "2023-06-16 11:30", status: "won" },
-    { id: 5, player: "CashKing", flightNumber: "AV-7890", amount: 4500, multiplier: 1.2, payout: 5400, date: "2023-06-15 13:45", status: "won" },
-  ]);
+  const [bets] = useState([]);
 
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
@@ -29,33 +23,15 @@ const BetHistory = () => {
   const [sortConfig, setSortConfig] = useState({ key: "date", direction: "desc" });
   const [selectedBet, setSelectedBet] = useState(null);
   const [openDialog, setOpenDialog] = useState(false);
-  const [stats, setStats] = useState({
+  const [stats] = useState({
     totalBets: 0,
     totalWagered: 0,
     totalPayout: 0,
     winRate: 0
   });
 
-  // Calculate statistics
- useEffect(() => {
-  const filteredBets = getFilteredBets();
-  
-  const totalBets = filteredBets.length;
-  const totalWagered = filteredBets.reduce((sum, bet) => sum + bet.amount, 0);
-  const totalPayout = filteredBets.reduce((sum, bet) => sum + bet.payout, 0);
-  const winRate = totalBets > 0 
-    ? Math.round((filteredBets.filter(bet => bet.status === "won").length / totalBets) * 100)
-    : 0;
-  
-  setStats({
-    totalBets,
-    totalWagered,
-    totalPayout,
-    winRate
-  });
-}, [bets, searchTerm, statusFilter, dateFilter]);
-
-  const getFilteredBets = () => {
+  // Define getFilteredBets with useCallback
+  const getFilteredBets = useCallback(() => {
     return bets.filter(bet => {
       // Search filter
       const matchesSearch = 
@@ -88,7 +64,12 @@ const BetHistory = () => {
       }
       return 0;
     });
-  };
+  }, [bets, searchTerm, statusFilter, dateFilter, sortConfig]);
+
+  // Calculate statistics (if needed, you can use getFilteredBets here)
+  useEffect(() => {
+    getFilteredBets();
+  }, [getFilteredBets]);
 
   const handleSearchChange = (event) => {
     setSearchTerm(event.target.value);

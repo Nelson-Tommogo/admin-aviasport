@@ -5,17 +5,14 @@ import {
   MenuItem, Grid, Card, CardContent, Chip
 } from "@mui/material";
 import { Search as SearchIcon, Flight as FlightIcon } from "@mui/icons-material";
+import { apiFetch } from '../../service/api';
 
 const FlightHistory = () => {
-  // Sample historical flight data
-  const [flights] = useState([
-    { id: 1, flightNumber: "AV-1234", multiplier: 2.5, timestamp: "2023-06-15 14:30", duration: "1m 45s", players: 120 },
-    { id: 2, flightNumber: "AV-5678", multiplier: 1.8, timestamp: "2023-06-15 15:45", duration: "1m 10s", players: 98 },
-    { id: 3, flightNumber: "AV-9012", multiplier: 3.2, timestamp: "2023-06-16 09:15", duration: "2m 05s", players: 145 },
-    { id: 4, flightNumber: "AV-3456", multiplier: 4.7, timestamp: "2023-06-16 11:30", duration: "2m 40s", players: 132 },
-    { id: 5, flightNumber: "AV-7890", multiplier: 1.2, timestamp: "2023-06-17 13:45", duration: "0m 55s", players: 87 },
-  ]);
-  
+  // Fetch flight data from backend
+  const [flights, setFlights] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+
   const [searchTerm, setSearchTerm] = useState("");
   const [dateFilter, setDateFilter] = useState("all");
   const [multiplierFilter, setMultiplierFilter] = useState("all");
@@ -26,35 +23,46 @@ const FlightHistory = () => {
     totalPlayers: 0
   });
 
+  useEffect(() => {
+    setLoading(true);
+    apiFetch('/flights')
+      .then(data => {
+        // Only keep flights that are linked to a flight plan
+        setFlights(data.filter(flight => flight.flightPlan));
+        setLoading(false);
+      })
+      .catch(err => {
+        setError(err.message);
+        setLoading(false);
+      });
+  }, []);
+
   // Wrap the filter function in useCallback to prevent unnecessary recalculations
   const getFilteredFlights = useCallback(() => {
     return flights.filter(flight => {
       // Search filter
-      const matchesSearch = flight.flightNumber.toLowerCase().includes(searchTerm.toLowerCase());
-      
+      const matchesSearch = (flight.flightNumber || "").toLowerCase().includes(searchTerm.toLowerCase());
       // Date filter
       let matchesDate = true;
       if (dateFilter === "today") {
         const today = new Date().toISOString().split('T')[0];
-        matchesDate = flight.timestamp.startsWith(today);
+        matchesDate = flight.startTime?.startsWith(today);
       } else if (dateFilter === "yesterday") {
         const yesterday = new Date(Date.now() - 86400000).toISOString().split('T')[0];
-        matchesDate = flight.timestamp.startsWith(yesterday);
+        matchesDate = flight.startTime?.startsWith(yesterday);
       } else if (dateFilter === "thisWeek") {
         const oneWeekAgo = new Date(Date.now() - 7 * 86400000).toISOString();
-        matchesDate = flight.timestamp >= oneWeekAgo;
+        matchesDate = flight.startTime >= oneWeekAgo;
       }
-      
-      // Multiplier filter
+      // Multiplier filter (if you have a multiplier field)
       let matchesMultiplier = true;
       if (multiplierFilter === "low") {
-        matchesMultiplier = parseFloat(flight.multiplier) < 2.0;
+        matchesMultiplier = parseFloat(flight.multiplier || 0) < 2.0;
       } else if (multiplierFilter === "medium") {
-        matchesMultiplier = parseFloat(flight.multiplier) >= 2.0 && parseFloat(flight.multiplier) < 4.0;
+        matchesMultiplier = parseFloat(flight.multiplier || 0) >= 2.0 && parseFloat(flight.multiplier || 0) < 4.0;
       } else if (multiplierFilter === "high") {
-        matchesMultiplier = parseFloat(flight.multiplier) >= 4.0;
+        matchesMultiplier = parseFloat(flight.multiplier || 0) >= 4.0;
       }
-      
       return matchesSearch && matchesDate && matchesMultiplier;
     });
   }, [flights, searchTerm, dateFilter, multiplierFilter]);
@@ -62,15 +70,13 @@ const FlightHistory = () => {
   // Calculate statistics
   useEffect(() => {
     const filteredFlights = getFilteredFlights();
-    
     const totalFlights = filteredFlights.length;
-    const totalMultiplier = filteredFlights.reduce((sum, flight) => sum + parseFloat(flight.multiplier), 0);
+    const totalMultiplier = filteredFlights.reduce((sum, flight) => sum + parseFloat(flight.multiplier || 0), 0);
     const averageMultiplier = totalFlights > 0 ? (totalMultiplier / totalFlights).toFixed(2) : 0;
     const highestMultiplier = filteredFlights.length > 0 
-      ? Math.max(...filteredFlights.map(flight => parseFloat(flight.multiplier)))
+      ? Math.max(...filteredFlights.map(flight => parseFloat(flight.multiplier || 0)))
       : 0;
-    const totalPlayers = filteredFlights.reduce((sum, flight) => sum + flight.players, 0);
-    
+    const totalPlayers = filteredFlights.reduce((sum, flight) => sum + (flight.players || 0), 0);
     setStats({
       totalFlights,
       averageMultiplier,
@@ -231,7 +237,7 @@ const FlightHistory = () => {
               <TableRow>
                 <TableCell colSpan={6} align="center">
                   <Typography variant="body1" sx={{ py: 2 }}>
-                    No flight history found matching your filters
+                    No flight history found.
                   </Typography>
                 </TableCell>
               </TableRow>

@@ -13,10 +13,10 @@ import {
   DialogTitle,
   DialogActions
 } from '@mui/material';
+import { apiFetch } from '../../service/api';
 
 const Signup = () => {
   const [username, setUsername] = useState('');
-  const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -28,42 +28,14 @@ const Signup = () => {
     setIsLoading(true);
     setError('');
 
-    const payload = { username, email, password };
-
     try {
-      const response = await fetch('https://mataa-backend.onrender.com/signup', {
+      await apiFetch('/auth/register', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        mode: 'cors',
-        credentials: 'include',
-        body: JSON.stringify(payload)
+        body: JSON.stringify({ username, password })
       });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        let backendMessage = data?.error || `Signup failed with status ${response.status}`;
-
-        if (backendMessage.includes('Email already in use')) {
-          backendMessage = 'This email is already registered. Try logging in instead.';
-        } else if (backendMessage.includes('Username already taken')) {
-          backendMessage = 'That username is already in use. Please choose another.';
-        } else if (backendMessage.includes('Signup limit reached')) {
-          backendMessage = 'Signup limit reached. Only 10 users are allowed.';
-        }
-
-        throw new Error(backendMessage);
-      }
-
-      // Show success dialog
       setOpenSuccessDialog(true);
-
     } catch (err) {
-      const errorMessage = err.message.includes('Failed to fetch')
-        ? 'Network error. Please check your internet connection.'
-        : err.message;
-
-      setError(errorMessage);
+      setError(err.message);
       console.error('Signup error:', err);
     } finally {
       setIsLoading(false);
@@ -98,7 +70,7 @@ const Signup = () => {
         }}
       >
         <Typography variant="h4" component="h1" align="center" gutterBottom>
-          Create Account
+          Create Admin Account
         </Typography>
 
         {error && (
@@ -124,17 +96,6 @@ const Signup = () => {
             required
             fullWidth
             autoComplete="username"
-          />
-
-          <TextField
-            label="Email"
-            type="email"
-            variant="outlined"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            required
-            fullWidth
-            autoComplete="email"
           />
 
           <TextField
