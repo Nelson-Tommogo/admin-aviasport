@@ -9,6 +9,7 @@ import FlightPlans from 'scenes/flightplans';
 import Settings from 'scenes/settings';
 import Players from 'scenes/players';
 import BetHistory from 'scenes/BetHistory';
+import Payout from 'scenes/Payout';
 import Login from 'components/Auth/login';
 import Signup from 'components/Auth/signup';
 
@@ -34,7 +35,8 @@ function App() {
           <Route path="flightplans" element={<FlightPlans />} />
           <Route path="settings" element={<Settings />} />
           <Route path="players" element={<Players />} />
-          <Route path="BetHistory" element={<BetHistory />} />
+          <Route path="bets-history" element={<BetHistory />} />
+          <Route path="payouts" element={<Payout />} />
         </Route>
 
         {/* Catch-all Route */}
