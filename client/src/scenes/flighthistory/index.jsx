@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { 
   Box, Typography, Table, TableBody, TableCell, TableContainer, 
   TableHead, TableRow, Paper, TextField, InputAdornment,
@@ -8,7 +8,7 @@ import { Search as SearchIcon, Flight as FlightIcon } from "@mui/icons-material"
 
 const FlightHistory = () => {
   // Sample historical flight data
-  const [flights, setFlights] = useState([
+  const [flights] = useState([
     { id: 1, flightNumber: "AV-1234", multiplier: 2.5, timestamp: "2023-06-15 14:30", duration: "1m 45s", players: 120 },
     { id: 2, flightNumber: "AV-5678", multiplier: 1.8, timestamp: "2023-06-15 15:45", duration: "1m 10s", players: 98 },
     { id: 3, flightNumber: "AV-9012", multiplier: 3.2, timestamp: "2023-06-16 09:15", duration: "2m 05s", players: 145 },
@@ -26,39 +26,8 @@ const FlightHistory = () => {
     totalPlayers: 0
   });
 
-  // Calculate statistics
-  useEffect(() => {
-    const filteredFlights = getFilteredFlights();
-    
-    const totalFlights = filteredFlights.length;
-    const totalMultiplier = filteredFlights.reduce((sum, flight) => sum + parseFloat(flight.multiplier), 0);
-    const averageMultiplier = totalFlights > 0 ? (totalMultiplier / totalFlights).toFixed(2) : 0;
-    const highestMultiplier = filteredFlights.length > 0 
-      ? Math.max(...filteredFlights.map(flight => parseFloat(flight.multiplier)))
-      : 0;
-    const totalPlayers = filteredFlights.reduce((sum, flight) => sum + flight.players, 0);
-    
-    setStats({
-      totalFlights,
-      averageMultiplier,
-      highestMultiplier,
-      totalPlayers
-    });
-  }, [flights, searchTerm, dateFilter, multiplierFilter]);
-
-  const handleSearchChange = (event) => {
-    setSearchTerm(event.target.value);
-  };
-
-  const handleDateFilterChange = (event) => {
-    setDateFilter(event.target.value);
-  };
-
-  const handleMultiplierFilterChange = (event) => {
-    setMultiplierFilter(event.target.value);
-  };
-
-  const getFilteredFlights = () => {
+  // Wrap the filter function in useCallback to prevent unnecessary recalculations
+  const getFilteredFlights = useCallback(() => {
     return flights.filter(flight => {
       // Search filter
       const matchesSearch = flight.flightNumber.toLowerCase().includes(searchTerm.toLowerCase());
@@ -88,6 +57,38 @@ const FlightHistory = () => {
       
       return matchesSearch && matchesDate && matchesMultiplier;
     });
+  }, [flights, searchTerm, dateFilter, multiplierFilter]);
+
+  // Calculate statistics
+  useEffect(() => {
+    const filteredFlights = getFilteredFlights();
+    
+    const totalFlights = filteredFlights.length;
+    const totalMultiplier = filteredFlights.reduce((sum, flight) => sum + parseFloat(flight.multiplier), 0);
+    const averageMultiplier = totalFlights > 0 ? (totalMultiplier / totalFlights).toFixed(2) : 0;
+    const highestMultiplier = filteredFlights.length > 0 
+      ? Math.max(...filteredFlights.map(flight => parseFloat(flight.multiplier)))
+      : 0;
+    const totalPlayers = filteredFlights.reduce((sum, flight) => sum + flight.players, 0);
+    
+    setStats({
+      totalFlights,
+      averageMultiplier,
+      highestMultiplier,
+      totalPlayers
+    });
+  }, [getFilteredFlights]);
+
+  const handleSearchChange = (event) => {
+    setSearchTerm(event.target.value);
+  };
+
+  const handleDateFilterChange = (event) => {
+    setDateFilter(event.target.value);
+  };
+
+  const handleMultiplierFilterChange = (event) => {
+    setMultiplierFilter(event.target.value);
   };
 
   const filteredFlights = getFilteredFlights();
@@ -201,7 +202,7 @@ const FlightHistory = () => {
           <TableBody>
             {filteredFlights.length > 0 ? (
               filteredFlights.map((flight) => (
-                <TableRow key={flight.id}>
+                <TableRow key={flight.id} hover>
                   <TableCell>
                     <Box sx={{ display: 'flex', alignItems: 'center' }}>
                       <FlightIcon sx={{ mr: 1, color: '#666' }} />

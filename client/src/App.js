@@ -7,6 +7,8 @@ import Admin from 'scenes/admin';
 import FlightHistory from 'scenes/flighthistory';
 import FlightPlans from 'scenes/flightplans';
 import Settings from 'scenes/settings';
+import Players from 'scenes/players';
+import BetHistory from 'scenes/BetHistory';
 import Login from 'components/Auth/login';
 import Signup from 'components/Auth/signup';
 
@@ -31,6 +33,8 @@ function App() {
           <Route path="flighthistory" element={<FlightHistory />} />
           <Route path="flightplans" element={<FlightPlans />} />
           <Route path="settings" element={<Settings />} />
+          <Route path="players" element={<Players />} />
+          <Route path="BetHistory" element={<BetHistory />} />
         </Route>
 
         {/* Catch-all Route */}
