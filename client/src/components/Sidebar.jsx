@@ -24,9 +24,15 @@ import {
   ChevronLeft,
   ChevronRightOutlined,
   HomeOutlined,
+<<<<<<< HEAD
   ShoppingCartOutlined,
   Groups2Outlined,
   ReceiptLongOutlined,
+=======
+  HistoryOutlined,
+  MapOutlined,
+  SettingsOutlined,
+>>>>>>> d51f49f9b6e10f30dd368a36df313b855f9eb463
   LogoutOutlined,
 } from "@mui/icons-material";
 import { useLocation, useNavigate } from "react-router-dom";
@@ -39,6 +45,7 @@ const navItems = [
     icon: <HomeOutlined />,
   },
   {
+<<<<<<< HEAD
     text: "Admin Operations",
     icon: null,
   },
@@ -53,6 +60,22 @@ const navItems = [
   {
     text: "Transactions",
     icon: <ReceiptLongOutlined />,
+=======
+    text: "Vetting Aviator",
+    icon: null,
+  },
+  {
+    text: "Flight History",
+    icon: <HistoryOutlined />,
+  },
+  {
+    text: "Flight Plans",
+    icon: <MapOutlined />,
+  },
+  {
+    text: "Settings",
+    icon: <SettingsOutlined />,
+>>>>>>> d51f49f9b6e10f30dd368a36df313b855f9eb463
   },
 ];
 
@@ -145,7 +168,11 @@ const Sidebar = ({
               <FlexBetween color="#90E0EF">
                 <Box display="flex" alignItems="center" gap="0.5rem">
                   <Typography variant="h4" fontWeight="bold" color="#90E0EF">
+<<<<<<< HEAD
                     MATAA GARI VENTURES
+=======
+                    AviaSports
+>>>>>>> d51f49f9b6e10f30dd368a36df313b855f9eb463
                   </Typography>
                 </Box>
                 {!isNonMobile && (
@@ -164,7 +191,11 @@ const Sidebar = ({
                     </Typography>
                   );
                 }
+<<<<<<< HEAD
                 const lcText = text.toLowerCase();
+=======
+                const lcText = text.toLowerCase().replace(/ /g, "");
+>>>>>>> d51f49f9b6e10f30dd368a36df313b855f9eb463
 
                 return (
                   <ListItem key={text} disablePadding>

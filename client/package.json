@@ -20,6 +20,10 @@
     "axios": "^1.8.2",
     "bcryptjs": "^3.0.2",
     "jsonwebtoken": "^9.0.2",
+<<<<<<< HEAD
+=======
+    "papaparse": "^5.5.3",
+>>>>>>> d51f49f9b6e10f30dd368a36df313b855f9eb463
     "react": "^18.2.0",
     "react-datepicker": "^4.8.0",
     "react-dom": "^18.2.0",
